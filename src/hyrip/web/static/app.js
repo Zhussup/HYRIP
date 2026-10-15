@@ -4,6 +4,36 @@ const $ = (id) => document.getElementById(id);
 const state = { article: null, sessionId: null, session: null, view: null,
                 idx: 0, timer: null, startedAt: null, budget: null };
 
+/* ---- theme (monochrome: only light vs dark) -------------------------------- */
+
+const THEME_KEY = "hyrip-theme";
+const systemTheme = () =>
+  (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+
+function storedTheme() {
+  try { return localStorage.getItem(THEME_KEY); } catch { return null; }
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  $("theme-toggle").textContent = theme === "dark" ? "light" : "dark";
+}
+
+function initTheme() {
+  applyTheme(storedTheme() || systemTheme());
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    // follow the system only while the user hasn't picked a theme explicitly
+    if (!storedTheme()) applyTheme(systemTheme());
+  });
+}
+
+function toggleTheme() {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  try { localStorage.setItem(THEME_KEY, next); } catch { /* private mode: session-only */ }
+  applyTheme(next);
+  if (lastRows) drawSparkline(lastRows); // repaint the canvas in the new palette
+}
+
 /* ---- api helpers ---------------------------------------------------------- */
 
 async function api(path, options = {}) {
@@ -512,6 +542,8 @@ function renderReport(report, elapsedSeconds) {
 
 /* ---- history -------------------------------------------------------------- */
 
+let lastRows = null;  // the bands last drawn, so the sparkline repaints on theme change
+
 async function showHistory() {
   show("history");
   try {
@@ -563,25 +595,29 @@ async function replay(sessionId) {
 }
 
 function drawSparkline(rows) {
+  lastRows = rows;
   const canvas = $("band-sparkline");
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!rows.length) { return; }
+  const styles = getComputedStyle(document.documentElement);
+  const ink = styles.getPropertyValue("--ink").trim() || "#171717";
+  const faint = styles.getPropertyValue("--faint").trim() || "#a3a3a3";
   const step = canvas.width / Math.max(rows.length, 8);
   const toY = (band) => canvas.height - ((band - 3.0) / 6.0) * (canvas.height - 20) - 10;
-  ctx.strokeStyle = "#0b7a55"; ctx.lineWidth = 2; ctx.beginPath();
+  ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.beginPath();
   rows.forEach((row, i) => {
     const x = 15 + i * step, y = toY(row.band_estimate);
     i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
   });
   ctx.stroke();
-  ctx.fillStyle = "#0b7a55";
+  ctx.fillStyle = ink;
   rows.forEach((row, i) => {
     ctx.beginPath();
     ctx.arc(15 + i * step, toY(row.band_estimate), 3, 0, Math.PI * 2);
     ctx.fill();
   });
-  ctx.fillStyle = "#5c6f66"; ctx.font = "11px sans-serif";
+  ctx.fillStyle = faint; ctx.font = "11px sans-serif";
   ctx.fillText("band trend (3.5 → 9.0)", 12, 14);
 }
 
@@ -596,6 +632,8 @@ async function abandon() {
 }
 
 function wire() {
+  initTheme();
+  $("theme-toggle").addEventListener("click", toggleTheme);
   $("btn-prepare").addEventListener("click", prepare);
   $("btn-start-answering").addEventListener("click", startAnswering);
   $("btn-next").addEventListener("click", () => {
