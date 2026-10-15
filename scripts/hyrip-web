@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# hyrip web launcher — starts the FastAPI backend (uvicorn: REST API + Tutor SSE + the SPA
+# under one server, http://127.0.0.1:8000) and opens the UI in the browser once it is up.
+# Extra flags pass through: `hyrip-web --port 8010` (stops after `set -euo`-safe parsing).
+set -euo pipefail
+
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+ROOT="$(cd -- "$(dirname -- "$SELF")/.." && pwd)"
+
+if [ -z "${OLLAMA_API_KEY:-}" ] && [ -r "$HOME/.config/hyrip/ollama_key" ]; then
+    OLLAMA_API_KEY="$(tr -d ' \t\r\n' < "$HOME/.config/hyrip/ollama_key")"
+    export OLLAMA_API_KEY
+fi
+
+PY="$ROOT/.venv/bin/python"
+[ -x "$PY" ] || { echo "hyrip venv missing at $ROOT/.venv — run: python3 -m venv $ROOT/.venv && $ROOT/.venv/bin/pip install -e '$ROOT[web,qt,dev]'" >&2; exit 1; }
+
+HOST=127.0.0.1
+PORT=8000
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --host) HOST="$2"; shift 2 ;;
+        --port) PORT="$2"; shift 2 ;;
+        *) break ;;
+    esac
+done
+
+( sleep 1.5; xdg-open "http://$HOST:$PORT/" >/dev/null 2>&1 || true ) &
+exec "$PY" -m hyrip serve --host "$HOST" --port "$PORT"

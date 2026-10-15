@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# hyrip Qt launcher — the desktop GUI (`hyrip gui`); the engine/backend runs in this process.
+set -euo pipefail
+
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+ROOT="$(cd -- "$(dirname -- "$SELF")/.." && pwd)"
+
+if [ -z "${OLLAMA_API_KEY:-}" ] && [ -r "$HOME/.config/hyrip/ollama_key" ]; then
+    OLLAMA_API_KEY="$(tr -d ' \t\r\n' < "$HOME/.config/hyrip/ollama_key")"
+    export OLLAMA_API_KEY
+fi
+
+PY="$ROOT/.venv/bin/python"
+[ -x "$PY" ] || { echo "hyrip venv missing at $ROOT/.venv — run: python3 -m venv $ROOT/.venv && $ROOT/.venv/bin/pip install -e '$ROOT[web,qt,dev]'" >&2; exit 1; }
+
+# No display (e.g. ssh/CI)? fall back to the headless platform instead of aborting.
+if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    echo "hyrip-qt: no display found — forcing QT_QPA_PLATFORM=offscreen" >&2
+    export QT_QPA_PLATFORM=offscreen
+fi
+exec "$PY" -m hyrip gui "$@"

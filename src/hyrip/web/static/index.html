@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hyrip — have you read it properly?</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">hyrip<span class="brand-sub">have you read it properly?</span></div>
+  <nav>
+    <button data-nav="input" class="linkbtn">new session</button>
+    <button data-nav="history" class="linkbtn">history</button>
+  </nav>
+</header>
+
+<main id="app">
+
+  <!-- 1 · input -->
+  <section id="screen-input" class="screen">
+    <h1>Check your reading</h1>
+    <p class="lead">Give hyrip an article, it writes an IELTS-style paper about it.
+       Read, answer, and find out whether you read it consciously.</p>
+    <div class="card">
+      <textarea id="article-text" rows="10" placeholder="Paste the article text here…"></textarea>
+      <div class="or">— or —</div>
+      <input id="article-url" placeholder="https://www.bbc.com/…" spellcheck="false">
+      <div class="row">
+        <label>mode
+          <select id="mode">
+            <option value="exam" selected>exam — silent test, report at the end</option>
+            <option value="tutor">tutor — feedback after every answer</option>
+          </select>
+        </label>
+        <label>questions
+          <select id="n-questions">
+            <option value="">default (12)</option>
+            <option>8</option><option>10</option><option>14</option><option>16</option>
+          </select>
+        </label>
+        <label>time budget
+          <select id="time-budget">
+            <option value="">default (20 min)</option>
+            <option>10</option><option>15</option><option>30</option><option>40</option>
+          </select>
+        </label>
+        <label>model
+          <select id="model"><option value="">default</option></select>
+        </label>
+      </div>
+      <button id="btn-prepare" class="primary">Write questions</button>
+      <p id="input-error" class="error hidden"></p>
+    </div>
+  </section>
+
+  <!-- 2 · prepare (generating) -->
+  <section id="screen-prepare" class="screen hidden">
+    <div class="card center">
+      <h2>Writing questions…</h2>
+      <p id="prepare-detail" class="dim"></p>
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="dim">This talks to Ollama Cloud and usually takes 30–120&nbsp;s.</p>
+      <p id="prepare-error" class="error hidden"></p>
+    </div>
+  </section>
+
+  <!-- 3 · article reading -->
+  <section id="screen-article" class="screen hidden">
+    <div class="reading-head">
+      <div>
+        <h2 id="article-title"></h2>
+        <p id="article-meta" class="dim"></p>
+      </div>
+      <div id="reading-timer" class="timer"></div>
+    </div>
+    <div id="article-body" class="article-body"></div>
+    <button id="btn-start-answering" class="primary">I’ve read it — start answering</button>
+  </section>
+
+  <!-- 4 · questions -->
+  <section id="screen-questions" class="screen hidden">
+    <div class="q-head">
+      <div>
+        <h3 id="q-group">Questions</h3>
+        <p id="q-instructions" class="dim"></p>
+      </div>
+      <div id="q-timer" class="timer"></div>
+    </div>
+    <p id="q-headings" class="heading-bank dim hidden"></p>
+    <article id="question-card" class="card"></article>
+    <div id="tutor-box" class="card tutor-box hidden">
+      <div id="tutor-verdict"></div>
+      <div id="tutor-feedback" class="tutor-text"></div>
+      <div id="followup-thread" class="followup-thread"></div>
+      <input id="followup-input" placeholder="Ask the tutor anything about this question…">
+      <button id="btn-followup" class="secondary">Ask</button>
+    </div>
+    <nav class="q-nav">
+      <button id="btn-prev" class="secondary">‹ Prev</button>
+      <div id="dot-grid" class="dot-grid"></div>
+      <button id="btn-skip" class="secondary">Skip</button>
+      <button id="btn-next" class="primary">Next ›</button>
+      <button id="btn-finish" class="danger">Finish</button>
+      <button id="btn-abandon" class="linkbtn">quit saving</button>
+    </nav>
+  </section>
+
+  <!-- 5 · report -->
+  <section id="screen-report" class="screen hidden">
+    <div class="score-card card">
+      <div class="score-big">
+        <span id="score-raw"></span>
+        <span id="score-band" class="band"></span>
+      </div>
+      <p id="score-meta" class="dim"></p>
+      <p id="score-disclaimer" class="disclaimer dim"></p>
+    </div>
+    <div id="report-observations" class="card"></div>
+    <div id="report-focus" class="card"></div>
+    <h3>Question review</h3>
+    <div id="report-reviews"></div>
+    <button id="btn-again" class="primary">Try another article</button>
+  </section>
+
+  <!-- 6 · history -->
+  <section id="screen-history" class="screen hidden">
+    <h2>History</h2>
+    <div id="history-stats" class="dim"></div>
+    <table id="history-table" class="history">
+      <thead><tr><th>#</th><th>mode</th><th>status</th><th>passage</th><th>score</th>
+        <th>band</th><th>elapsed</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <canvas id="band-sparkline" width="640" height="120" class="sparkline"></canvas>
+  </section>
+
+</main>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

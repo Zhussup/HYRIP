@@ -1,0 +1,227 @@
+{
+  "passage_title": "Rooftop hives: the quiet boom in urban beekeeping",
+  "groups": [
+    {
+      "question_type": "multiple_choice",
+      "instructions": "CHOOSE THE CORRECT LETTER, A-D",
+      "options": [
+        "Rooftop hives were legalised in 2010.",
+        "The countryside became too crowded for hives.",
+        "Honey prices fell in the capital.",
+        "Scientists began recommending urban honey."
+      ],
+      "items": [
+        {
+          "number": 1,
+          "prompt": "According to the passage, beekeeping in the capital grew quickly because",
+          "answer_key": "A",
+          "evidence": [
+            {
+              "paragraph": "B",
+              "quote": "Before rooftop hives were legalised in the capital in 2010"
+            }
+          ],
+          "explanation": "Paragraph B says hives appeared after the rule change; the other options are not stated."
+        },
+        {
+          "number": 2,
+          "prompt": "What do the figures in the passage suggest about city bees?",
+          "answer_key": "C",
+          "evidence": [
+            {
+              "paragraph": "C",
+              "quote": "A city hive yields around 30 kg of honey a year"
+            }
+          ],
+          "explanation": "The passage compares yields, 30 kg urban against 20 kg rural; longevity is never mentioned."
+        }
+      ]
+    },
+    {
+      "question_type": "true_false_not_given",
+      "instructions": "DO THE FOLLOWING STATEMENTS AGREE WITH THE INFORMATION GIVEN IN THE TEXT?",
+      "items": [
+        {
+          "number": 3,
+          "prompt": "For some would-be beekeepers, moving hives out of the city used to be necessary.",
+          "answer_key": "TRUE",
+          "evidence": [
+            {
+              "paragraph": "B",
+              "quote": "would-be beekeepers had to drive their hives out beyond the ring road"
+            }
+          ],
+          "explanation": "Paragraph B states they had to drive hives beyond the ring road before 2010."
+        },
+        {
+          "number": 4,
+          "prompt": "Urban beekeepers lose more colonies to varroa than rural ones.",
+          "answer_key": "FALSE",
+          "evidence": [
+            {
+              "paragraph": "D",
+              "quote": "their cousins on town roofs suffer less still"
+            }
+          ],
+          "explanation": "Paragraph D places the city ahead of the countryside on varroa, not behind."
+        }
+      ]
+    },
+    {
+      "question_type": "matching_headings",
+      "instructions": "CHOOSE THE CORRECT HEADING FOR EACH PARAGRAPH FROM THE LIST OF HEADINGS BELOW",
+      "headings": [
+        "i. Rules of keeping bees",
+        "ii. A warning from ecologists",
+        "iii. Beekeepers respond with restraint",
+        "iv. Learning through hives",
+        "v. The economics of urban honey",
+        "vi. Bees move to the city",
+        "vii. Healthier insects in town",
+        "viii. Schools and city halls in dispute"
+      ],
+      "items": [
+        {
+          "number": 5,
+          "prompt": "Choose the correct heading for paragraph E.",
+          "paragraph_label": "E",
+          "answer_key": "ii",
+          "evidence": [
+            {
+              "paragraph": "E",
+              "quote": "Ten hives on one block can starve wild pollinators"
+            }
+          ],
+          "explanation": "Paragraph E is Dr Renn's warning about crowding out wild pollinators."
+        },
+        {
+          "number": 6,
+          "prompt": "Choose the correct heading for paragraph F.",
+          "paragraph_label": "F",
+          "answer_key": "iii",
+          "evidence": [
+            {
+              "paragraph": "F",
+              "quote": "declared a \"no new hives\" pledge in 2019"
+            }
+          ],
+          "explanation": "Paragraph F describes the network's self-limiting pledge and registry."
+        },
+        {
+          "number": 7,
+          "prompt": "Choose the correct heading for paragraph G.",
+          "paragraph_label": "G",
+          "answer_key": "iv",
+          "evidence": [
+            {
+              "paragraph": "G",
+              "quote": "the first club of that kind started at a primary school in Hackney in 2016"
+            }
+          ],
+          "explanation": "Paragraph G is about schools using hives to teach biology."
+        }
+      ]
+    },
+    {
+      "question_type": "match_paragraphs",
+      "instructions": "WHICH PARAGRAPH CONTAINS THE FOLLOWING INFORMATION?",
+      "items": [
+        {
+          "number": 8,
+          "prompt": "a claim that honey produced in town sells at a higher price",
+          "answer_key": "H",
+          "evidence": [
+            {
+              "paragraph": "H",
+              "quote": "City honey commands premium prices in local shops"
+            }
+          ],
+          "explanation": "Prices appear only in paragraph H."
+        },
+        {
+          "number": 9,
+          "prompt": "an account of why town colonies cope with a common parasite",
+          "answer_key": "D",
+          "evidence": [
+            {
+              "paragraph": "D",
+              "quote": "City colonies appear to cope better with varroa"
+            }
+          ],
+          "explanation": "Paragraph D explains the varroa comparison between town and country."
+        }
+      ]
+    },
+    {
+      "question_type": "completion",
+      "instructions": "COMPLETE EACH SENTENCE WITH ONE WORD AND/OR A NUMBER",
+      "items": [
+        {
+          "number": 10,
+          "prompt": "A city hive produces around ____ kilograms of honey a year.",
+          "answer_key": "30",
+          "acceptable": ["thirty"],
+          "word_limit": 3,
+          "allows_numbers": true,
+          "evidence": [
+            {
+              "paragraph": "C",
+              "quote": "yields around 30 kg of honey a year"
+            }
+          ],
+          "explanation": "The yield figure appears in paragraph C."
+        },
+        {
+          "number": 11,
+          "prompt": "Dr Maya Renn warns that dense clusters of hives can ____.",
+          "answer_key": "starve wild pollinators",
+          "acceptable": ["starve the pollinators"],
+          "word_limit": 3,
+          "evidence": [
+            {
+              "paragraph": "E",
+              "quote": "Ten hives on one block can starve wild pollinators"
+            }
+          ],
+          "explanation": "Renn's warning is quoted in paragraph E."
+        }
+      ]
+    },
+    {
+      "question_type": "summary_choice",
+      "instructions": "WHICH STATEMENT BEST SUMMARISES THE MAIN IDEA OF THE PASSAGE?",
+      "items": [
+        {
+          "number": 12,
+          "prompt": "Which statement best summarises the main idea of the whole passage?",
+          "answer_key": "B",
+          "options": [
+            {
+              "text": "London produces the finest honey in the country.",
+              "trap_kind": "unsupported"
+            },
+            {
+              "text": "Urban beekeeping has grown quickly, and its rapid spread now needs managing carefully.",
+              "trap_kind": null
+            },
+            {
+              "text": "Rooftop hives were introduced largely so that schools could teach biology.",
+              "trap_kind": "narrow"
+            },
+            {
+              "text": "City bees are healthier than wild insects.",
+              "trap_kind": "broad"
+            }
+          ],
+          "evidence": [
+            {
+              "paragraph": "F",
+              "quote": "no new hives"
+            }
+          ],
+          "explanation": "The passage tracks both the boom and the response that pulls it back; B holds both halves."
+        }
+      ]
+    }
+  ]
+}
