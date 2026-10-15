@@ -11,4 +11,14 @@ htmlcov/
 .pycharm/
 .idea/
 .vscode/
+# secrets — never commit API keys, env files, certificates
+.env
+.env.*
+*.env
+*.key
+*.pem
+*token*
+secrets/
+ollama_key
+
 *.db

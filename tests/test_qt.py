@@ -68,6 +68,41 @@ def test_main_window_pages(qapp, store, config, fake_llm):
         )
 
 
+def test_verdicts_render_by_glyph_not_colour():
+    from hyrip.qt.main_window import VERDICT_GLYPH, VERDICT_STYLE
+
+    assert set(VERDICT_GLYPH) == {"correct", "partial", "incorrect", "skipped"}
+    for style in VERDICT_STYLE.values():
+        assert "color" not in style
+    assert set(VERDICT_GLYPH.values()) == {"✓", "≈", "✗", "·"}
+
+
+def test_theme_palettes_are_monochrome(qapp):
+    from hyrip.qt import theme
+
+    for tokens in theme.TOKENS.values():
+        css = theme.stylesheet(tokens)
+        for hue in ("#1a7f37", "#b45309", "#b3261e", "red", "green", "blue", "amber", "teal"):
+            assert hue not in css
+    light = theme.stylesheet(theme.TOKENS[theme.LIGHT])
+    dark = theme.stylesheet(theme.TOKENS[theme.DARK])
+    assert "#171717" in light and "#fafafa" in light
+    assert "#ededed" in dark and "#121212" in dark
+
+
+def test_theme_resolution(qapp):
+    from PySide6.QtGui import QPalette
+
+    from hyrip.qt import theme
+
+    assert theme.resolve(theme.LIGHT, qapp) == theme.LIGHT
+    assert theme.resolve(theme.DARK, qapp) == theme.DARK
+    assert theme.resolve("bogus", qapp) in (theme.LIGHT, theme.DARK)
+    assert theme.apply(theme.DARK, qapp) == theme.DARK
+    window = qapp.palette().color(QPalette.ColorRole.Window).name().lower()
+    assert window == theme.TOKENS[theme.DARK]["bg"]
+
+
 def test_history_page_loads(qapp, store, config, fake_llm, raw_paper, article):
     from hyrip.llm.client import ChatResult
     from hyrip.qt.main_window import MainWindow

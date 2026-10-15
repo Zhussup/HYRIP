@@ -5,7 +5,9 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import (
+    QApplication,
     QButtonGroup,
     QCheckBox,
     QComboBox,
@@ -32,14 +34,18 @@ from PySide6.QtWidgets import (
 from ..models.article import Article
 from ..models.grading import GradedItem, SessionReport, UserAnswer
 from ..service.session import SessionService
+from . import theme
 from .workers import run_on_thread
 
+# Strictly monochrome: states are glyph + typography, never colour, so the
+# light and dark palettes (qt/theme.py) both render them by shape.
 VERDICT_STYLE = {
-    "correct": "color:#1a7f37; font-weight:bold;",
-    "partial": "color:#b45309; font-weight:bold;",
-    "incorrect": "color:#b3261e; font-weight:bold;",
-    "skipped": "color:#5c6f66;",
+    "correct": "font-weight:bold;",
+    "partial": "font-style:italic;",
+    "incorrect": "",
+    "skipped": "",
 }
+VERDICT_GLYPH = {"correct": "✓", "partial": "≈", "incorrect": "✗", "skipped": "·"}
 
 ROMANS = [None, "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", "xi", "xii"]
 
@@ -539,8 +545,9 @@ class ReportPage(QWidget):
         lines.append("<hr><b>Question review</b>")
         for review in report.reviews:
             style = VERDICT_STYLE.get(review.verdict, "")
+            glyph = VERDICT_GLYPH.get(review.verdict, "·")
             lines.append(
-                f"<p><span style='{style}'>{review.verdict.upper()}</span> "
+                f"<p><span style='{style}'>{glyph} {review.verdict.upper()}</span> "
                 f"Q{review.number} <i>{review.question_type}</i><br>"
                 f"you: {review.user_raw or '(skipped)'} · "
                 f"answer: {review.answer_key}<br>"
@@ -656,6 +663,34 @@ class MainWindow(QMainWindow):
         self.questions_page.skip_btn.clicked.connect(self._skip)
         self.questions_page.finish_btn.clicked.connect(self._finish)
 
+        self._theme_actions: dict[str, QAction] = self._build_theme_menu()
+
+    # -- theme menu (system / light / dark, persisted) ----
+
+    def _build_theme_menu(self) -> dict[str, QAction]:
+        menu = self.menuBar().addMenu("theme")
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        actions = {}
+        for pref, label in (
+            (theme.SYSTEM, "system — follow the desktop"),
+            (theme.LIGHT, "light"),
+            (theme.DARK, "dark"),
+        ):
+            action = QAction(label, self, checkable=True)
+            action.triggered.connect(lambda checked=False, p=pref: self._set_theme(p))
+            group.addAction(action)
+            menu.addAction(action)
+            actions[pref] = action
+        pref = theme.stored_preference()
+        actions[pref].setChecked(True)
+        return actions
+
+    def _set_theme(self, pref: str) -> None:
+        theme.set_preference(pref)
+        theme.apply(pref, QApplication.instance())
+        self._theme_actions[pref].setChecked(True)
+
     # -- navigation ----
 
     def go(self, page: QWidget) -> None:
@@ -731,13 +766,8 @@ class MainWindow(QMainWindow):
         if graded is None:
             return
         page = self.questions_page
-        color = {"correct": "#1a7f37", "partial": "#b45309", "incorrect": "#b3261e"}.get(
-            graded.verdict, "#5c6f66"
-        )
-        page.set_tutor(
-            f"<span style='color:{color}'><b>{graded.verdict}</b></span> "
-            f"<span style='color:#5c6f66'>(marked by {graded.graded_by})</span>"
-        )
+        glyph = VERDICT_GLYPH.get(graded.verdict, "·")
+        page.set_tutor(f"<b>{glyph} {graded.verdict}</b> (marked by {graded.graded_by})")
         page.controller.tutor_feedback(self.session_id, number, graded)
 
     def _on_tutor_chunk(self, number: int, token: str) -> None:

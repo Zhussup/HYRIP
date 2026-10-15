@@ -20,6 +20,11 @@ no local model install required.
 All three share the same session engine, question bank rules, and SQLite history — pick the one
 that suits the moment.
 
+All three render strictly monochrome: two grey palettes (light + dark), no accent colours.
+The web page has a theme toggle (follows the system, manual override remembered in the browser);
+the Qt window has a `theme` menu (system / light / dark, remembered via QSettings). Verdicts read
+by shape, not colour: ✓ correct, ≈ partial, ✗ incorrect, · skipped.
+
 There are also ready-made launcher scripts (symlinked to `~/.local/bin` at setup, see
 `scripts/`): `hyrip-cli` (bare = paste mode), `hyrip-web [= opens the browser]`,
 `hyrip-qt` — each self-locates the venv and reads the API key from
