@@ -9,6 +9,7 @@ import pytest
 from hyrip.engine.generator import generate_paper, mix_recipe, parse_json_response
 from hyrip.errors import GenerationError
 from hyrip.llm.client import ChatResult
+from hyrip.models.llm_contracts import RawGeneratedPaper
 
 
 def _paper_json(raw_paper) -> str:
@@ -44,7 +45,7 @@ def test_truncated_generation_regenerates_with_headroom(fake_llm, raw_paper, art
     ]
     outcome = generate_paper(fake_llm, article, config=config)
     assert len(fake_llm.calls) == 2
-    assert fake_llm.calls[1]["max_tokens"] == int(config.max_tokens * 1.5)
+    assert fake_llm.calls[1]["max_tokens"] == int(config.max_tokens * 2)
     assert outcome.paper.meta.finish_reason == "stop"
 
 
@@ -97,13 +98,69 @@ def test_schema_drift_repair_gets_real_validator_errors(fake_llm, raw_paper, art
     assert "not valid paper JSON" not in repair_user["content"]
 
 
-def test_non_json_output_triggers_repair_then_fails(fake_llm, article, config):
+def test_unparseable_output_regenerates_with_headroom_then_fails(fake_llm, article, config):
+    """Unparseable output cannot be repaired by feedback (the model must rewrite from
+    scratch anyway) — it regenerates with token headroom instead."""
     fake_llm.responses = [
         ChatResult(content="not json at all", finish_reason="stop"),
         ChatResult(content="still not json", finish_reason="stop"),
     ]
     with pytest.raises(GenerationError):
         generate_paper(fake_llm, article, config=config)
+    assert len(fake_llm.calls) == 2
+    assert fake_llm.calls[1]["max_tokens"] == int(config.max_tokens * 2)
+    roles = [m["role"] for m in fake_llm.calls[1]["messages"]]
+    assert roles.count("assistant") == 0  # a fresh generation, not a repair transcript
+
+
+def test_truncated_json_regenerates_not_repairs(fake_llm, raw_paper, article, config):
+    """Output cut mid-object (pydantic: 'Invalid JSON: EOF while parsing a list …') is a
+    token-budget problem, not drift: rewrite from scratch with headroom, no repair."""
+    text = _paper_json(raw_paper)
+    cut = text[: text.rindex('"summary_choice"')]  # ends inside the trailing summary group
+    fake_llm.responses = [
+        ChatResult(content=cut, finish_reason="stop"),
+        ChatResult(content=_paper_json(raw_paper), finish_reason="stop"),
+    ]
+    outcome = generate_paper(fake_llm, article, config=config)
+    assert len(fake_llm.calls) == 2
+    assert fake_llm.calls[1]["max_tokens"] == int(config.max_tokens * 2)
+    roles = [m["role"] for m in fake_llm.calls[1]["messages"]]
+    assert roles.count("assistant") == 0
+    assert outcome.paper.meta.repair_used is False
+    assert outcome.warnings == []
+
+
+def test_double_truncation_reports_budget_hint(fake_llm, article, config):
+    cut = '{"groups": [{"question_type": "multiple_choice", "items": ['
+    fake_llm.responses = [
+        ChatResult(content=cut, finish_reason="stop"),
+        ChatResult(content=cut, finish_reason="stop"),
+    ]
+    with pytest.raises(GenerationError, match="HYRIP_MAX_TOKENS"):
+        generate_paper(fake_llm, article, config=config)
+
+
+def test_seven_group_paper_parses(raw_paper):
+    """The n=14/16 recipes hold 7 groups (short_answer joins at 14) — the schema must accept
+    them. Regression: the contract capped groups at 6, making 14/16 unvalidatable."""
+    data = json.loads(_paper_json(raw_paper))
+    completion = data["groups"][4]
+    data["groups"].append(
+        {
+            **completion,
+            "question_type": "short_answer",
+            "items": [completion["items"][0]],
+        }
+    )
+    assert len(json.loads(_paper_json(RawGeneratedPaper.model_validate(data)))["groups"]) == 7
+
+
+def test_recipe_group_counts_stay_within_the_contract():
+    meta = RawGeneratedPaper.model_fields["groups"].metadata
+    cap = next(m.max_length for m in meta if getattr(m, "max_length", None) is not None)
+    for n in range(8, 17):
+        assert len(mix_recipe(n=n)) <= cap
 
 
 def test_soft_drift_reported_as_warning(fake_llm, raw_paper, article, config):

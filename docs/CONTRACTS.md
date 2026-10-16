@@ -9,8 +9,9 @@ Call parameters at a glance:
 
 | Call | Endpoint | Mode | Temperature | Max tokens |
 |---|---|---|---|---|
-| Paper generation | `POST /v1/chat/completions` | `response_format: json_object` | config (`HYRIP_TEMPERATURE`, default 0.4) | config (`HYRIP_MAX_TOKENS`, default 6000) |
-| Repair round-trip | same | same | same | same |
+| Paper generation | `POST /v1/chat/completions` | `response_format: json_object` | config (`HYRIP_TEMPERATURE`, default 0.4) | config (`HYRIP_MAX_TOKENS`, default 12000) |
+| Recovery: rewrite (truncated/unparseable) | same | `json_object` | same | `HYRIP_MAX_TOKENS * 2` |
+| Repair round-trip | same | same | same | same as config |
 | Marker (batch / single) | same | `json_object` | 0.2 | same as config |
 | Tutor feedback / follow-up | same (streamed) | plain text, **not** JSON | default | 600 (`TUTOR_MAX_TOKENS`) |
 | Coach (optional, off by default) | same | `json_object` | default | same as config |
@@ -28,7 +29,7 @@ item-writing rules + passage (`label. text` per paragraph) + recipe line ("multi
 ```jsonc
 {
   "passage_title": "<short title (optional, falls back to article title)>",
-  "groups": [                                   // 2–6 groups
+  "groups": [                                   // 2–7 groups
     {
       "question_type": "multiple_choice" | "true_false_not_given" | "yes_no_not_given"
                      | "matching_headings" | "match_paragraphs" | "completion"
@@ -59,9 +60,20 @@ item-writing rules + passage (`label. text` per paragraph) + recipe line ("multi
 }
 ```
 
-**Post-parse validation** (`engine/validation.py`) — hard failures trigger **one** repair
-round-trip (assistant JSON + validator errors fed back; a second failure raises
-`GenerationError`, the article is kept):
+**Post-parse validation** (`engine/validation.py`) — hard failures trigger **one** recovery
+call, chosen by failure shape (`generate_paper`):
+
+- **Output never parsed** (`parse_json_response` failed, or pydantic's `json_invalid` —
+  structurally broken / token-cut JSON, the "Invalid JSON: EOF …" case): the model cannot
+  see past its own truncation, so feedback has nothing actionable — the paper is rewritten
+  **from scratch** with `HYRIP_MAX_TOKENS * 2`. If that also fails to parse (or is
+  `finish_reason == "length"` again), `GenerationError` carries the hint to raise
+  `HYRIP_MAX_TOKENS`.
+- **Parsed but drifted** (domain hard errors, or schema `extra="forbid"`/type violations on
+  a complete JSON): one repair round-trip (assistant JSON + validator errors fed back at the
+  base budget); a second failure raises `GenerationError` — the article is kept.
+
+Recovery hard errors:
 
 - consecutive numbering 1..N;
 - exactly one `summary_choice` group and it is last;
@@ -77,12 +89,13 @@ wasted repair round-trip.
 Soft checks (recorded as warnings, never discarded): evidence quotes verified verbatim
 against paragraph text (`quote_verified=False` otherwise); item count within ±1 of the recipe.
 
-If `finish_reason == "length"` the paper is unrepairable — one regeneration attempt with
-`max_tokens * 1.5` before giving up.
+If a response is `finish_reason == "length"`, or its JSON never parsed, the paper is
+unrepairable by feedback — one from-scratch rewrite with `HYRIP_MAX_TOKENS * 2` instead.
 
 **Recipe/mix**: default 12 items (2 MC, 2 TFNG or YNNG, 3 headings, 2 which-paragraph,
 2 completion, 1 main-idea); `--claims` switches TFNG→YNNG; `match_paragraphs` is dropped
-below 6 paragraphs; N is clamped to 8–16 (`HYRIP_QUESTIONS` `--questions`).
+below 6 paragraphs; N is clamped to 8–16 (`HYRIP_QUESTIONS` `--questions`). The 14/16
+recipes carry 7 groups (short_answer joins at 14), which is why the `groups` cap is 7.
 
 ## 2. Marker (open questions only)
 

@@ -68,6 +68,33 @@ def test_main_window_pages(qapp, store, config, fake_llm):
         )
 
 
+def test_questions_page_rerenders_through_the_paper(qapp, store, config, fake_llm, raw_paper, article):
+    """Regression: render() detached the GroupBox that owns q_layout, so the layout's C++
+    object died and the next render crashed ('Internal C++ object (QVBoxLayout) already
+    deleted'). The box must be a permanent shell; only its children are rebuilt."""
+    from hyrip.llm.client import ChatResult
+    from hyrip.qt.main_window import MainWindow
+    from hyrip.service.session import SessionService
+    from hyrip.store.repo import save_article
+
+    fake_llm.responses = [
+        ChatResult(content=raw_paper.model_dump_json(), finish_reason="stop", latency_s=0.1)
+    ]
+    service = SessionService(store, fake_llm, config)
+    session_id = service.start_and_generate(save_article(store, article), mode="exam")
+    service.start(session_id)
+
+    window = MainWindow(service)
+    view = service.view(session_id)
+    page = window.questions_page
+    page.set_view(session_id, article, view, service.snapshot(session_id))
+    for idx in range(len(view["questions"])):  # walk the paper the way Next/Prev does
+        page.idx = idx
+        page.render()
+    qapp.processEvents()
+    assert page.qarea.title() == f"Q{len(view['questions'])}"
+
+
 def test_verdicts_render_by_glyph_not_colour():
     from hyrip.qt.main_window import VERDICT_GLYPH, VERDICT_STYLE
 

@@ -139,22 +139,28 @@ def parse_json_response(text: str) -> str:
 
 def _validate_result(
     content: str, article: Article, expected_n: int
-) -> tuple[RawGeneratedPaper | None, list[str], list[str]]:
-    """Return (raw|None, hard_errors, soft_warnings) — never raise.
+) -> tuple[RawGeneratedPaper | None, list[str], list[str], bool]:
+    """Return (raw|None, hard_errors, soft_warnings, json_never_parsed) — never raise.
 
-    Hard errors are phrased for the repair round-trip: the model must be able to act on
-    them (schema details and rule names), unlike a single unparseable-output shrug.
+    json_never_parsed marks the unrepairable case: structurally broken or truncated JSON
+    (pydantic's "json_invalid") gives the model nothing actionable to fix in place, so the
+    paper must be rewritten from scratch. Parseable-but-schema-invalid output is the
+    opposite: `extra="forbid"` violations are fed back verbatim to the repair round-trip,
+    which can act on them. Hard errors are phrased for the repair round-trip: schema
+    details and rule names, unlike a single unparseable-output shrug.
     """
     try:
         json_text = parse_json_response(content)
     except GenerationError:
-        return None, ["the output was not a JSON object"], []
+        return None, ["the output was not a JSON object"], [], True
     try:
         raw = RawGeneratedPaper.model_validate_json(json_text)
     except ValidationError as exc:
-        return None, [f"schema: {_fmt_schema_error(e)}" for e in exc.errors()[:6]], []
+        errors = exc.errors()
+        hard = [f"schema: {_fmt_schema_error(e)}" for e in errors[:6]]
+        return None, hard, [], any(err["type"] == "json_invalid" for err in errors)
     hard, soft = check_raw_paper(raw, article, expected_n=expected_n)
-    return raw, hard, soft
+    return raw, hard, soft, False
 
 
 def generate_paper(
@@ -165,29 +171,47 @@ def generate_paper(
     n_questions: int = 12,
     claims_mode: bool = False,
 ) -> GenerationOutcome:
+    messages = build_generation_messages(
+        article,
+        mix_recipe(n=n_questions, claims_mode=claims_mode, n_paragraphs=len(article.paragraphs)),
+    )
     result = client.chat(
-        build_generation_messages(
-            article,
-            recipe := mix_recipe(
-                n=n_questions, claims_mode=claims_mode, n_paragraphs=len(article.paragraphs)
-            ),
-        ),
+        messages,
         json_mode=True,
         temperature=config.temperature,
         max_tokens=config.max_tokens,
     )
-    if result.finish_reason == "length":  # a truncated paper is unrepairable; regen with headroom
+    raw, hard, soft, unparseable = _validate_result(result.content, article, n_questions)
+    repair_used = False
+    if result.finish_reason == "length" or unparseable:
+        # The output cannot be fixed by feedback: a length-cut JSON ends mid-object, so the
+        # model has nothing actionable to repair and must rewrite from scratch anyway — do
+        # exactly that, with token headroom, instead of a repair round-trip at the same
+        # budget that just truncated.
+        first = list(hard) or ["the output was cut at the token budget"]
         result = client.chat(
-            build_generation_messages(article, recipe),
+            messages,
             json_mode=True,
             temperature=config.temperature,
-            max_tokens=int(config.max_tokens * 1.5),
+            max_tokens=int(config.max_tokens * 2),
         )
-
-    messages = build_generation_messages(article, recipe)
-    repair_used = False
-    raw, hard, soft = _validate_result(result.content, article, n_questions)
-    if hard:
+        raw, hard, soft, unparseable = _validate_result(result.content, article, n_questions)
+        if unparseable or result.finish_reason == "length":
+            second = list(hard)
+            if result.finish_reason == "length":  # known cut, right at a parseable end
+                second.append(f"cut again at {int(config.max_tokens * 2)} output tokens")
+            lines = [
+                "Question-paper generation failed validation twice.",
+                f"- first: {'; '.join(first)}",
+                f"- second: {'; '.join(second)}",
+            ]
+            if unparseable or result.finish_reason == "length":
+                lines.append(
+                    "Hint: the paper likely does not fit the output budget — raise"
+                    " HYRIP_MAX_TOKENS or ask for fewer questions."
+                )
+            raise GenerationError("\n".join(lines))
+    if hard:  # parseable but drifted: the normal repair round-trip
         repair_messages = build_repair_messages(messages, result.content, hard)
         second = client.chat(
             repair_messages,
@@ -195,7 +219,7 @@ def generate_paper(
             temperature=config.temperature,
             max_tokens=config.max_tokens,
         )
-        raw, hard2, soft2 = _validate_result(second.content, article, n_questions)
+        raw, hard2, soft2, _ = _validate_result(second.content, article, n_questions)
         if hard2:
             raise GenerationError(
                 "Question-paper generation failed validation twice.\n"

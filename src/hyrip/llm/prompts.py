@@ -24,8 +24,9 @@ Hard rules:
 1. Use ONLY the passage. Invent nothing. Never test background knowledge.
 2. Every answer must be provable by a verbatim quote copied EXACTLY from the passage. \
 Put each quote's paragraph label in its "paragraph" field.
-3. NOT GIVEN items: "evidence": [] and the statement must be neither confirmed nor contradicted \
-(the trick is that the passage is silent or only partially about it).
+3. NOT GIVEN items: "evidence": [] — no quote at all. A NOT GIVEN statement has no decisive \
+words in the passage to quote, so any shipped quote is wrong; the statement must be neither \
+confirmed nor contradicted (the trick is that the passage is silent or only partially about it).
 4. Question stems MUST paraphrase the passage. Never reuse a long span of passage text in a stem.
 5. Distractors must be plausible: supported by the passage but answering the wrong detail \
 — different scope, extent, time, or the wrong actor.
@@ -40,9 +41,10 @@ the correct option has no trap_kind.
 9. Order groups so items follow the order in which their answers appear in the passage. \
 summary_choice stays last.
 10. Output ONE JSON object, no markdown, no commentary.
-11. Emit EXACTLY ONE group per recipe entry, in recipe order, nothing more — no splitting a
-   type across groups and no extra groups. The groups array holds as many entries as the
-   recipe lists (typically 5-6)."""
+11. Emit EXACTLY ONE group per recipe entry, in recipe order, nothing more — never split a \
+type across groups and never add groups. "true_false_not_given x2" means ONE group whose \
+"items" array holds TWO numbered items; the "groups" array has exactly as many objects as \
+the recipe has entries."""
 
 _JSON_SKELETON = """{
   "passage_title": "<short title>",

@@ -46,7 +46,9 @@ class Config:
             tags_url=env.get("HYRIP_TAGS_URL") or DEFAULT_TAGS_URL,
             model=env.get("HYRIP_MODEL") or DEFAULT_MODEL,
             timeout_s=float(env.get("HYRIP_TIMEOUT") or 180),
-            max_tokens=int(env.get("HYRIP_MAX_TOKENS") or 6000),
+            # 12-item Cambridge-style papers from a verbose model run 4-8k tokens; 6000 was
+            # cut mid-list in observed runs ("Invalid JSON: EOF while parsing a list").
+            max_tokens=int(env.get("HYRIP_MAX_TOKENS") or 12000),
             temperature=float(env.get("HYRIP_TEMPERATURE") or 0.4),
             coach_notes=_as_bool(env.get("COACH_NOTES") or "1"),
             data_dir=paths.data_dir(),

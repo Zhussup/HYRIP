@@ -55,7 +55,8 @@ class RawGeneratedPaper(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     passage_title: str = ""  # optional; falls back to the article title
-    groups: list[RawGroup] = Field(min_length=2, max_length=6)
+    # n=14/16 recipes carry 7 groups (short_answer joins at 14), so the cap is 7, not 6.
+    groups: list[RawGroup] = Field(min_length=2, max_length=7)
 
 
 class MarkResult(BaseModel):

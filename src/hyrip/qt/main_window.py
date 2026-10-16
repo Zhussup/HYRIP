@@ -381,20 +381,24 @@ class QuestionsPage(QWidget):
         else:
             self.headings.setVisible(False)
 
-        self.q_layout.removeWidget(self.qarea)
-        self.qarea.setParent(None)
-        self.qarea = QGroupBox(f"Q{question['number']}")
-        inner = QVBoxLayout(self.qarea)
+        # The group box and its layout must survive every render — a QVBoxLayout dies with
+        # the widget it manages, so throwing the box away per question (and reusing the
+        # layout of the detached box) crashes shiboken on the next render. The box is a
+        # permanent shell; only its children are rebuilt.
+        while self.q_layout.count():
+            item = self.q_layout.takeAt(0)
+            if widget := item.widget():
+                widget.deleteLater()
+        self.qarea.setTitle(f"Q{question['number']}")
+        self._radio_group = QButtonGroup()  # unparented: replaced (and collected) per render
+
+        saved = self._drafts.get(question["number"], "")
         prompt = QLabel(question["prompt"])
         prompt.setWordWrap(True)
-        inner.addWidget(prompt)
-
-        saved = getattr(self, "_drafts", {}).get(question["number"], "")
-        self._radio_group = QButtonGroup(self)
-        input_widget = self._build_input(question, saved, inner)
+        self.q_layout.addWidget(prompt)
+        input_widget = self._build_input(question, saved, self.q_layout)
         self._current_input = input_widget
-        inner.setAlignment(Qt.AlignTop)
-        self.q_layout.addWidget(self.qarea)
+        self.q_layout.setAlignment(Qt.AlignTop)
 
         self.prev_btn.setEnabled(self.idx > 0)
         self.tutor.clear()
